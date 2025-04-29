@@ -1,54 +1,56 @@
 const API = {
     organizationList: "/orgsList",
-    analytics: "/api3/analytics",
+    analytics: "/api3/analitics", 
     orgReqs: "/api3/reqBase",
     buhForms: "/api3/buh",
 };
 
 async function run() {
-    const orgOgrns = await sendRequest(API.organizationList);
+    try {
+        const orgOgrns = await sendRequest(API.organizationList);
 
-    const ogrns = orgOgrns.join(",");
+        const ogrns = orgOgrns.join(",");
 
-    const requisites = await sendRequest(`${API.orgReqs}?ogrn=${ogrns}`);
-    const orgsMap = reqsToMap(requisites);
+        const requisites = await sendRequest(`${API.orgReqs}?ogrn=${ogrns}`);
+        const orgsMap = reqsToMap(requisites);
 
-    const analytics = await sendRequest(`${API.analytics}?ogrn=${ogrns}`);
-    addInOrgsMap(orgsMap, analytics, "analytics");
+        const analytics = await sendRequest(`${API.analytics}?ogrn=${ogrns}`);
+        addInOrgsMap(orgsMap, analytics, "analytics");
 
-    const buh = await sendRequest(`${API.buhForms}?ogrn=${ogrns}`);
-    addInOrgsMap(orgsMap, buh, "buhForms");
+        const buh = await sendRequest(`${API.buhForms}?ogrn=${ogrns}`);
+        addInOrgsMap(orgsMap, buh, "buhForms");
 
-    render(orgsMap, orgOgrns);
+        render(orgsMap, orgOgrns);
+    } catch (error) {
+        if (error.message.includes("Request failed with status")) {
+            const [_, status, statusText] = error.message.match(/Request failed with status (\d+) (.+)/) || [];
+            if (status && statusText) {
+                alert(`Ошибка запроса: Код ${status}, Статус: ${statusText}`);
+            } else {
+                alert(`Ошибка запроса: ${error.message}`);
+            }
+        } else {
+            alert(`Ошибка: ${error.message}`);
+        }
+        return; 
+    }
 }
 
 run();
 
-function sendRequest(url) {
-    return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("GET", url, true);
-
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                if (xhr.status === 200) {
-                    try {
-                        resolve(JSON.parse(xhr.response));
-                    } catch (e) {
-                        reject(new Error("Failed to parse JSON response"));
-                    }
-                } else {
-                    reject(new Error(`Request failed with status ${xhr.status}`));
-                }
-            }
-        };
-
-        xhr.onerror = function () {
-            reject(new Error("Network error occurred"));
-        };
-
-        xhr.send();
-    });
+async function sendRequest(url) {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status} ${response.statusText}`);
+        }
+        return await response.json();
+    } catch (error) {
+        if (error.name === 'TypeError') {
+            throw new Error("Network error occurred");
+        }
+        throw error;
+    }
 }
 
 function reqsToMap(requisites) {
@@ -118,11 +120,13 @@ function formatMoney(money) {
     const rounded = money.toFixed(0);
     const numLen = rounded.length;
     for (let i = numLen - 3; i > 0; i -= 3) {
-        formatted = `${formatted.slice(0, i)}${formatted.slice(i)}`;
+        formatted = `${formatted.slice(0, i)} ${formatted.slice(i)}`;
     }
 
-    return `${formatted}₽`;
+    return `${formatted} ₽`;
 }
+
+
 
 function createAddress(address) {
     const addressToRender = [];

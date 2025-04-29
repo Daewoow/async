@@ -24,31 +24,19 @@ async function run() {
 
 run();
 
-function sendRequest(url) {
-    return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("GET", url, true);
-
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                if (xhr.status === 200) {
-                    try {
-                        resolve(JSON.parse(xhr.response));
-                    } catch (e) {
-                        reject(new Error("Failed to parse JSON response"));
-                    }
-                } else {
-                    reject(new Error(`Request failed with status ${xhr.status}`));
-                }
-            }
-        };
-
-        xhr.onerror = function () {
-            reject(new Error("Network error occurred"));
-        };
-
-        xhr.send();
-    });
+async function sendRequest(url) {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        if (error.name === 'TypeError') {
+            throw new Error("Network error occurred");
+        }
+        throw error;
+    }
 }
 
 function reqsToMap(requisites) {
@@ -118,10 +106,10 @@ function formatMoney(money) {
     const rounded = money.toFixed(0);
     const numLen = rounded.length;
     for (let i = numLen - 3; i > 0; i -= 3) {
-        formatted = `${formatted.slice(0, i)}${formatted.slice(i)}`;
+        formatted = `${formatted.slice(0, i)} ${formatted.slice(i)}`;
     }
 
-    return `${formatted}₽`;
+    return `${formatted} ₽`;
 }
 
 function createAddress(address) {

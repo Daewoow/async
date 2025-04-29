@@ -42,6 +42,7 @@ async function sendRequest(url) {
     try {
         const response = await fetch(url);
         if (response.status >= 300) {
+            alert(`Ошибка: статус: ${response.status} ${response.statusText}`);
             throw new Error(`Ы: ${response.status} ${response.statusText}`);
         }
         return await response.json();
